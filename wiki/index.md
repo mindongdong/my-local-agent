@@ -46,7 +46,8 @@
 
 ## Phase 노트
 
-- [phases/w0.5-validation.md](phases/w0.5-validation.md) — W0.5 검증 게이트 (진행 중). 메모리/모델/cmux 측정 완료: qwen3.5:9b 정품 확정·로드 RAM 8.5GB@4k(binding constraint), **cmux round-trip 300/300 PASS**. `ulw` 동시성·JSON 준수율·모델 라우팅 미측정.
+- [phases/w0.5-validation.md](phases/w0.5-validation.md) — W0.5 검증 게이트 **완료 (Go, 헤드리스 전제)**. 메모리(8.5GB binding) / cmux round-trip 300·100% / 동시 워커 / JSON 14·14·93% 측정. 모델 라우팅은 W1 연기.
+- [phases/w1-handoff.md](phases/w1-handoff.md) — **W1 핸드오프** (다른 머신 → 타겟 Mac Mini). ⚠️ W0.5 실측은 다른 머신 → Mac Mini 환경 셋업 + 재검증 후 W1 착수. 운영 사실 distill + 시작 지시문 포함.
 
 ---
 

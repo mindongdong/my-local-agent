@@ -126,7 +126,7 @@ OMC의 진단 명령어로, 현재 환경 (플러그인, 모델 라우팅, hook,
 
 ### cmux
 
-멀티 pane 워크스페이스 터미널 도구로, [[OMC]]가 cmux 세션 내에 여러 worker를 병렬로 배치한다. `send-keys` (명령 전송)와 `capture-pane` (출력 캡처) 두 가지 핵심 작업으로 [[Manager]]와 [[Worker]] 간 통신을 중개한다.
+멀티 pane 워크스페이스 터미널 도구로, [[OMC]]가 cmux 세션 내에 여러 worker를 병렬로 배치한다. `send`/`send-key` (명령 전송)와 `capture-pane` (출력 캡처) 두 가지 핵심 작업으로 [[Manager]]와 [[Worker]] 간 통신을 중개한다.
 
 **관련**: [[OMC]], [[worktree]]
 
@@ -180,7 +180,7 @@ Layer-by-layer 구조 대신, 가는 E2E 라인을 먼저 구현하고 점진적
 
 ### qwen3.5:9b (Q4_K_M)
 
-[[Manager]] 역할을 수행하기 위해 채택된 로컬 LLM. Ollama로 실행되며, Q4_K_M 양자화로 약 6.6GB 메모리를 소비한다. 256K 컨텍스트 윈도우와 멀티모달 지원이 특징이다.
+[[Manager]] 역할을 수행하기 위해 채택된 로컬 LLM. Ollama로 실행된다. Q4_K_M quant의 디스크 크기는 약 6.6GB이나 **로드 시 RAM 점유는 8.5GB**(ctx 4096 실측, [[w0.5-validation]]). 256K 컨텍스트 윈도우와 멀티모달을 지원하나, 16GB에서 full context는 불가하여 운영 컨텍스트를 캡한다.
 
 **관련**: [[Manager]], [[Gemma 3n E4B]]
 
@@ -189,3 +189,19 @@ Layer-by-layer 구조 대신, 가는 E2E 라인을 먼저 구현하고 점진적
 [[qwen3.5:9b]]의 백업 옵션으로, 메모리 문제 발생 시 대체할 수 있는 로컬 LLM. 필요에 따라 [[W0.5]]에서 평가된다.
 
 **관련**: [[qwen3.5:9b]], [[Manager]]
+
+---
+
+## 개발 프로세스
+
+### Trunk-Based Development (TBD)
+
+이 repo의 git 워크플로우 ([[ADR 0008]]). `main`을 단일 트렁크로 두고, 모든 변경을 `main`에서 분기한 짧은 수명 브랜치에서 작업해 PR로 자주 통합한다. 장수 브랜치(Git Flow의 develop/release)를 두지 않는다. 운영 세부는 `CONTRIBUTING.md`.
+
+**관련**: [[Conventional Commits]], [[tracer-bullet 로드맵]]
+
+### Conventional Commits
+
+커밋 메시지 컨벤션. `type(scope): subject` 형식, 영어·간결. type은 feat/fix/refactor/docs/test/chore/perf/ci. 이 repo의 커밋 규약이며 [[Trunk-Based Development (TBD)]]와 함께 [[ADR 0008]]에서 채택.
+
+**관련**: [[Trunk-Based Development (TBD)]]

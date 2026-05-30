@@ -46,6 +46,8 @@ superseded-by: ""
 **부정적 영향 / 리스크**
 
 - [[cmux]] 통신 안정성을 W0.5 검증 게이트에서 조기 결판해야 함 (round-trip 성공률 ≥ 99% 기준). 통과 실패 시 이 결정을 재검토한다.
+  - **[2026-05-30 측정 — PASS]**: cmux 0.64.10에서 round-trip **300/300 (100%)** 성공, 평균 지연 0.277s/최대 0.329s (실패율 95% 상한 ~1%). 이 결정의 핵심 리스크 해소. 단 셸 echo 프리미티브 기준이며 OMC TUI Worker 안정성은 별도. 상세: [[w0.5-validation]].
+  - **[API 어휘 정정]**: 본 ADR의 `send-keys`/`new-session` 표기는 cmux 0.64.10 기준 **`send`+`send-key`(Enter)** / **`new-workspace --focus false`** 로 읽어야 한다. `capture-pane`은 cmux tmux-compat로 유효. 정확한 spawn/send/capture 매핑은 [[w0.5-validation]] 참조.
 - 다중 OMC 세션 동시 실행 시 메모리 부담. [[qwen3.5:9b]] + OMC 세션 복수 병렬 실행은 16GB Mac Mini에서 빡빡할 수 있다. W0.5에서 실측 필요.
 - OMC의 `autopilot`/`ralph` 루프가 [[L2 자율성]] 원칙과 충돌 가능. [[worktree]] 환경에서 `gh` CLI 차단 등 가드레일을 별도 설계해야 한다.
 

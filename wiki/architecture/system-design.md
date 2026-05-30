@@ -76,7 +76,7 @@
 |---|---|
 | **FastAPI** | HTTP I/O, 인증/권한, 요청 검증, 백그라운드 태스크 트리거 |
 | **LangGraph** | 에이전트 추론, 상태 전이, [[Manager]] LLM 호출, interrupt 게이트, 가드레일 집행 |
-| **OMC orchestrator** | [[cmux]] 세션 spawn, `send-keys`/`capture-pane` 래핑, [[magic keyword]] 분기 |
+| **OMC orchestrator** | [[cmux]] 세션 spawn, `send`/`send-key`/`capture-pane` 래핑, [[magic keyword]] 분기 |
 | **Discord Bot** | 사용자 인터페이스, thread 관리 (별도 프로세스) |
 
 > FastAPI 에 LLM 코드 없음, LangGraph 에 HTTP 코드 없음, OMC orchestrator 는 LangGraph 의 한 tool 로 wrap → 테스트/유지보수 용이.
@@ -208,10 +208,10 @@ END
 
 | 단계 | 행동 |
 |---|---|
-| spawn | 작업 시작 시 [[Manager]] 가 `cmux new-session -d -s task-<id>` 로 detached session 생성 |
-| attach worktree | 해당 session 의 cwd 를 worktree 경로로 설정 (`send-keys` 로 `cd <worktree>`) |
+| spawn | 작업 시작 시 [[Manager]] 가 `cmux new-workspace --name task-<id> --focus false` 로 detached session 생성 |
+| attach worktree | 해당 session 의 cwd 를 worktree 경로로 설정 (`send`+`send-key` 로 `cd <worktree>`) |
 | 환경 가드레일 | `.env` 차단 + `gh` CLI 차단 — worktree env 에서 PATH 조작 또는 wrapper script 로 처리 |
-| 작업 실행 | `send-keys` 로 `claude` 띄우고 magic keyword 전송 |
+| 작업 실행 | `send`+`send-key` 로 `claude` 띄우고 magic keyword 전송 |
 | 출력 수집 | `capture-pane` 로 결과 / diff / interrupt 신호 수집 |
 | 종료 | 작업 완료 또는 `/cancel` → SIGTERM → 5초 후 SIGKILL → `cmux kill-session` → worktree 정리 |
 
@@ -255,7 +255,7 @@ END
 
 1. [[OMC]] 가 실행 중 모호함 발견 → `/deep-interview` 로 영문 질문 생성 (`cmux capture-pane` 으로 [[Manager]] 가 감지)
 2. [[Manager]] 가 영문 질문을 한국어로 옮겨 Discord thread 에 포스팅
-3. 사용자가 한국어로 응답 → [[Manager]] 가 영문으로 다시 옮겨 `send-keys` 로 [[OMC]] 에 inject
+3. 사용자가 한국어로 응답 → [[Manager]] 가 영문으로 다시 옮겨 `send`+`send-key` 로 [[OMC]] 에 inject
 4. [[OMC]] 가 작업 재개
 
 > 이 round-trip 의 안정성은 [[W3]] 에서 별도 검증한다.
@@ -368,7 +368,7 @@ W5 에서 이 중 하나를 채택. 우선 (1) Anthropic API metering 을 시도
 │   │   ├── create_pr.py
 │   │   └── distiller.py
 │   └── tools/
-│       ├── cmux_wrapper.py  send-keys/capture-pane 헬퍼
+│       ├── cmux_wrapper.py  send/send-key/capture-pane 헬퍼
 │       ├── omc_router.py    magic keyword 라우팅
 │       └── gh_cli.py        PR 생성 (Manager 전용)
 ├── bot/                     Discord 봇 (별도 프로세스)
@@ -413,7 +413,7 @@ W5 에서 이 중 하나를 채택. 우선 (1) Anthropic API metering 을 시도
 |---|---|---|---|
 | **[[W0]]** | 부트스트랩 | [[dev-wiki]] 뼈대 + ADR 0001~0005 + 개정 system-design + 환경 셋업 | (1) `wiki/` 디렉터리 + SCHEMA + glossary + index + log, (2) ADR 5개, (3) 이 문서, (4) Ollama + qwen3.5:9b pull, (5) [[OMC]] 설치 + `/omc-doctor` 통과, (6) [[cmux]] 설치 확인 |
 | **[[W0.5]]** | 검증 게이트 | Go/No-go 결정 + ADR 0007 | (1) 메모리 peak < 14GB 측정, (2) `autopilot:` 단발 호출 성공, (3) [[cmux]] round-trip 100회 (실패율 ≤ 1%), (4) `ulw` 2 동시성 OOM 없음, (5) 모델 라우팅 정상 분기 |
-| **[[W1]]** | E2E 스파이크 | Discord msg → 하드코딩 영문 prompt → cmux OMC → diff 한국어 출력 (PR/승인/가드레일 없음) | (1) Discord bot mention 수신, (2) [[cmux]] 세션 spawn 헬퍼, (3) [[OMC]] send-keys + capture-pane 래퍼, (4) diff 캡처 → [[qwen3.5:9b]] 한국어 요약, (5) Discord thread 결과 포스팅 |
+| **[[W1]]** | E2E 스파이크 | Discord msg → 하드코딩 영문 prompt → cmux OMC → diff 한국어 출력 (PR/승인/가드레일 없음) | (1) Discord bot mention 수신, (2) [[cmux]] 세션 spawn 헬퍼, (3) [[OMC]] `send`/`send-key` + capture-pane 래퍼, (4) diff 캡처 → [[qwen3.5:9b]] 한국어 요약, (5) Discord thread 결과 포스팅 |
 | **[[W2]]** | Manager 두뇌화 | 이슈 fetch + 한국어 의도 파싱 + 영문 prompt 빌드 | (1) GitHub API 이슈 fetch, (2) LangGraph minimal (parse_issue → build_prompt), (3) `assess_sufficiency` JSON schema, (4) 기존 E2E 에 인서트 |
 | **[[W3]]** | interrupt + checkpointer | SQLite checkpointer + interrupt #1 (정보 부족 시 추가 질문) + OMC `/deep-interview` round-trip | (1) SQLite checkpointer 도입, (2) `interrupt()` + resume, (3) Discord thread reply → resume 매핑, (4) `/deep-interview` ↔ interrupt #1 매핑 검증 |
 | **[[W4]]** | 승인 게이트 | interrupt #2 (코드) + interrupt #3 (PR) | (1) diff 한국어 요약 + 승인 요청 메시지, (2) reaction/reply 로 승인 캡처, (3) PR 승인 분리 |
@@ -426,7 +426,7 @@ W5 에서 이 중 하나를 채택. 우선 (1) Anthropic API metering 을 시도
 세 가지 모두 충족:
 
 1. 메모리 peak < 14GB
-2. `send-keys`/`capture-pane` 안정 (≥ 99% 성공)
+2. `send`/`send-key`/`capture-pane` 안정 (≥ 99% 성공)
 3. `ulw` 2 동시 통과
 
 ### No-go 시 fallback ([[ADR 0005]])
@@ -494,7 +494,7 @@ ADR 화되지 않은 작업 범위 결정은 원본 spec 그대로 유지한다.
 
 ### Medium
 
-- **[[cmux]] 통신 (`send-keys`/`capture-pane`) 안정성** — 검증되지 않음. [[W0.5]] 에서 100회 round-trip 테스트로 결판 ([[ADR 0005]])
+- **[[cmux]] 통신 (`send`/`send-key`/`capture-pane`) 안정성** — 검증되지 않음. [[W0.5]] 에서 100회 round-trip 테스트로 결판 ([[ADR 0005]])
 - **[[OMC]] `/deep-interview` ↔ [[Manager]] [[interrupt #1]] 매핑** — [[OMC]] 가 영문으로 물으면 [[Manager]] 가 한국어로 옮겨 Discord 전달 → 응답 받아 inject. 이 round-trip 이 매끄럽게 동작하는지는 [[W3]] 에서 검증 ([[ADR 0003]] Consequences)
 - **가드레일 카운팅 정확도** — [[OMC]] 는 자체 모델 라우팅 (haiku/sonnet/opus) 을 하므로 토큰 비용 추정이 복잡. Anthropic API metering 또는 [[OMC]] `/trace` 출력 파싱 또는 PostToolUse hook 중 택일 ([[ADR 0003]] Consequences)
 - **E2E 테스트 실행으로 인한 토큰 폭주** — 재시도 × 멀티턴 곱셈. 가드레일 이중화로 완화

@@ -65,3 +65,23 @@ No-go fallback(Gemma 3n E4B 다운그레이드, headless `claude -p` 회귀, 동
 **(C) 동시성 1로 축소 + Gemma + headless** (plan §8 "둘 다 문제"). 메모리·통신 모두 실패 시의 최후 경로. 해당 없음. 미채택.
 
 **(D) 모델 라우팅까지 측정 후 Go 판정**. 완전성은 높으나 라우팅은 Go 기준이 아니고 OMC 내부라 W1 실사용에서 더 자연스럽게 검증된다. 게이트를 불필요하게 지연시키지 않기 위해 연기. ([[w0.5-validation]] 미측정 항목)
+
+## Addendum — Mac Mini 재검증 (2026-05-30)
+
+원래 판정의 측정치는 **개발용 다른 Mac**에서 나왔고, 메모리는 머신 특정값이라 [[w1-handoff]] §1이 타겟 **Mac Mini(M4 16GB)** 재검증을 W1 전 필수로 요구했다. 헤드리스(VSCode·Discord·KakaoTalk·iTerm2·Preview 종료)에서 3 Go 기준을 재현한 결과:
+
+| Go 기준 | Mac Mini 16GB 헤드리스 실측 | 판정 |
+|---|---|---|
+| ① 메모리 peak < 14GB | `top` used **15G** (모델+3워커 동일), 단 **swap 무증가(113.5M 고정)·pressure normal** | ⚠️ 조건부 PASS |
+| ② cmux round-trip ≥ 99% | **300/300 (100%)**, first-try 300/300, ~0.25s/trial | ✅ |
+| ③ `ulw` 2 동시 | 워커 2개(+0.75GB) 추가에도 swap 고정, compressor 흡수 | ✅ |
+
+**메모리 메트릭 정정**: Apple Silicon **통합메모리**에서 GPU 상주 모델 가중치(~7.4GB)가 **wired**로 잡혀 `top "used"`가 모델 로드만으로 ~15G가 된다. 따라서 16GB 머신에서 `top used < 14GB`는 모델을 띄우는 한 충족 불가 — **올바른 게이지는 swap 증가량 + pressure level**이며 둘 다 건강(모델+3워커에서도 무-스왑). 기준 ①의 **의도(스왑 스래싱 없이 동작)는 충족** → 조건부 PASS. 원 Decision(Go, 헤드리스 전제) **유지**.
+
+**운영 전제 보강**:
+- (기존 1~4 유지) +
+- **5. Manager 모델 keep_alive 단명(버스트 로드)** — 메모리 병목은 GUI가 아니라 **모델 7.4GB + macOS ~8GB**다(헤드리스로도 ~15G). GUI 종료만으론 14GB 밑으로 안 내려간다. **진짜 레버는 keep_alive**: Manager 추론(triage/요약)에만 짧게 로드하고 유휴 시 언로드해 **7.4GB를 회수**, 평시는 8.5G + 워커로 헤드룸 확보. (모델 자동 언로드 → 즉시 회수 실측 확인)
+
+**cmux 0.64.10 API 정정** (Mac Mini에서 드러남): `send`/`read-screen`은 **`--surface`에 `--window` 컨텍스트 필수**, 기본 `new-workspace`는 비-터미널이라 **`--layout` 터미널 surface 명시** 필요. W1 cmux 래퍼에 반영. (상세: [[w0.5-validation]] Mac Mini 재측정 §②)
+
+**잔여 리스크 갱신**: 헤드룸 얇음(unused ~170M). W1에서 Discord bot·FastAPI·SQLite·실제 요약 컨텍스트 추가 시 **운영 메모리 재측정** 필요. 초과 시 fallback = keep_alive 단축 / 동시성 1 / Gemma 다운그레이드([[ADR 0004]]).

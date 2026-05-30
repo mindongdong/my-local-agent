@@ -487,7 +487,7 @@ ADR 화되지 않은 작업 범위 결정은 원본 spec 그대로 유지한다.
 
 ### High
 
-- **[[qwen3.5:9b]] 의 tool calling / JSON 출력 일관성** — 9B Q4_K_M 은 명백히 작음. JSON schema 강제 + 체크리스트 기반 출력으로 완화. 그래도 흔들리면 [[W0.5]] 결과에 따라 [[Gemma 3n E4B]] fallback ([[ADR 0004]])
+- **[[qwen3.5:9b]] 의 tool calling / JSON 출력 일관성** — 9B Q4_K_M 은 명백히 작음. JSON schema 강제 + 체크리스트 기반 출력으로 완화. 그래도 흔들리면 [[W0.5]] 결과에 따라 [[Gemma 3n E4B]] fallback ([[ADR 0004]]). **[W0.5 측정: 구조 100% / 의미 93% PASS]** — 단 "JSON schema 강제"는 ollama `format`이 아니라 **프롬프트 구조 명시 + 코드 검증**으로 구현 (ollama format 미강제 확인, [[w0.5-validation]])
 - **Mac Mini 16GB 메모리 한계** — [[qwen3.5:9b]] (6.6GB) + [[OMC]] 다중 세션 + [[cmux]] + macOS = ~15GB. peak 에서 스왑 가능성. [[W0.5]] 에서 실측 + 동시성 축소
 - **[[OMC]] `autopilot:` / `ralph:` 가 [[L2 자율성]] 과 충돌** — [[OMC]] 가 자체적으로 PR 까지 가버리는 시나리오 차단 필요. worktree env 에서 `gh` CLI 제거, [[Manager]] 만 PR 생성 ([[ADR 0002]] Consequences, [[ADR 0003]])
 - **자유 형식 이슈 → 의도 파싱 부담** — [[Manager]] 시스템 prompt 설계가 시스템 품질의 80% 좌우

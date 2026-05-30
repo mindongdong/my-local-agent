@@ -33,7 +33,7 @@
 - [decisions/0004-qwen3.5-9b-as-manager.md](decisions/0004-qwen3.5-9b-as-manager.md) — Manager LLM으로 qwen3.5:9b 채택, Gemma 3n E4B는 fallback
 - [decisions/0005-tracer-bullet-roadmap.md](decisions/0005-tracer-bullet-roadmap.md) — Layer-by-layer 대신 Tracer-bullet + W0.5 검증 게이트
 - [decisions/0006-system-scope-single-repo.md](decisions/0006-system-scope-single-repo.md) — 시스템 범위는 단일 GitHub repo (1.0), 검증 후 multi-repo 확장 도모
-- *0007 — [[W0.5]] 검증 결과용 예약 (미작성)*
+- [decisions/0007-omc-validation-result.md](decisions/0007-omc-validation-result.md) — W0.5 검증 결과: **Go (헤드리스 전제)**, qwen3.5:9b + OMC + cmux 스택 유지, 모델 라우팅은 W1 연기
 - [decisions/0008-git-workflow-tbd.md](decisions/0008-git-workflow-tbd.md) — Git 워크플로우로 Trunk-Based Development + Conventional Commits + PR 템플릿 채택
 
 ---

@@ -289,8 +289,8 @@ my-local-agent/
 
 ## 11. 다음 행동
 
-1. **이 문서 확정** — 빠진 부분, 틀린 부분, 다른 방향 검토
-2. **W0 실행 시작** — 위 W0-1 ~ W0-8을 순서대로 실행. wiki 뼈대 + SCHEMA + glossary + ADR 5개 + 개정 system-design을 한 번에 생성
-3. **W0-9 환경 셋업** — Qwen pull, OMC 설치는 사용자 손이 필요
-4. **W0.5 검증** — Mac Mini에서 손으로 측정 후 ADR 0007 작성 (ADR 0006은 시스템 범위 정의로 사용됨)
-5. **W1 진입** — E2E 스파이크 시작
+1. ~~이 문서 확정~~ ✅
+2. ~~W0 실행~~ ✅ — wiki 뼈대 + SCHEMA + glossary + ADR 0001~0006 + system-design
+3. ~~W0-9 환경 셋업~~ ✅ — ollama 0.24.0 + qwen3.5:9b, OMC, cmux 0.64.10
+4. ~~W0.5 검증~~ ✅ **Go (헤드리스 전제)** — [wiki/decisions/0007-omc-validation-result.md](wiki/decisions/0007-omc-validation-result.md). 메모리/cmux 300·100%/ulw/JSON 93% 측정, 모델 라우팅은 W1 연기
+5. **W1 진입** ← 현재 — E2E 스파이크 (Discord → cmux OMC → 한국어 diff)

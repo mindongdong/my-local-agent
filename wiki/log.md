@@ -59,3 +59,75 @@ W0 부트스트랩 산출물의 wiki 내부 일관성 확보. W0.5 진입 가능
 - 루트 `CLAUDE.md` 와 `work-plan.md` 헤더에도 시스템 정의 1줄 추가
 
 근거: 미래 세션이 "왜 이 시스템이 다중 repo 를 다루지 않지?" 라는 질문에 ADR 0006 으로 답할 수 있도록 의사결정 사슬에 명시적으로 포함.
+
+## [2026-05-30] phase | W0.5 진입 — 환경 셋업 + 메모리/모델 선측정
+
+W0-9 환경 셋업 완료 및 W0.5 측정 항목 일부 선측정:
+
+- `brew install ollama` (0.24.0) + `brew services start ollama` (launchd 등록)
+- `ollama pull qwen3.5:9b` 완료 → **정품 Qwen3.5 (Tongyi Lab) 확정** (`ollama show`: arch `qwen35`, 9.7B, 262144 ctx, Q4_K_M, vision+tools+thinking, Apache 2.0)
+- 메모리 실측: **로드 RAM 8.5GB@4k ctx** (plan 가정 6.6GB는 디스크 크기), 모델+세션1개에서 free 105M + swapout 이력 → 메모리 binding constraint 확정
+- 추론 ~25 tok/s (warm). interactive `think:true`에서 thinking 트레이스 헛소리 관측 → Manager는 `think:false` + JSON schema 강제 권고
+
+영향 페이지: [phases/w0.5-validation.md](phases/w0.5-validation.md) 신설, [decisions/0004-qwen3.5-9b-as-manager.md](decisions/0004-qwen3.5-9b-as-manager.md) 메모리 정정 노트, 루트 work-plan.md §4 표 보정, [index.md](index.md) Phase 노트 항목.
+
+미측정 W0.5 항목 (다음): cmux round-trip(실제 0.64.10 API로 재설계), `ulw` 2 동시성, JSON schema 준수율, 모델 라우팅. 완료 후 ADR 0007.
+
+## [2026-05-30] phase | W0.5 cmux round-trip 측정 — 300/300 PASS
+
+cmux 스킬 기반으로 cmux 통신 안정성 실측 ([work-plan.md](../work-plan.md) §8 / [[ADR 0002]] 핵심 리스크):
+
+- 이 Claude Code 세션이 cmux `workspace:2/surface:4` 안에서 직접 구동됨을 `cmux identify`로 확인 → Manager가 다른 surface를 구동하는 실제 시나리오 재현
+- probe: `cmux new-workspace --focus false` → `workspace:5/surface:9`, round-trip = `send` + `send-key Enter` + `read-screen`, 출력 토큰을 `$((i*7))` 산술 결과로 설계해 실제 실행만 카운트
+- 결과: **300회 (100+200) 전부 성공 (100%)**, 평균 지연 0.277s / 최대 0.329s, 실패율 95% 상한 ~1%
+- `close-workspace` 후 토폴로지 원상복구 + caller 포커스 유지 = 비파괴 자동화 확인
+- 판정: **cmux 통신 PASS** → ADR 0002 리스크 해소
+
+영향 페이지: [phases/w0.5-validation.md](phases/w0.5-validation.md) cmux 결과 섹션, [decisions/0002-omc-as-worker-runtime.md](decisions/0002-omc-as-worker-runtime.md) 측정 노트.
+
+## [2026-05-30] lint | TODO — cmux API 어휘 정합화 (stale claim)
+
+cmux 0.64.10 실측 결과 tmux식 `send-keys`(복수형)·`new-session`은 존재하지 않음 (`capture-pane`은 tmux-compat로 유효). 다음 페이지의 `send-keys`/`new-session` 표현을 `send`+`send-key`/`new-workspace`로 정정 필요 — **별도 패스로 진행 예정**:
+
+- `architecture/system-design.md` — L79, L211~215, L258, L371, L416, L429, L497 (~10곳, section 4 lifecycle 포함)
+- `glossary.md` — L129 (`### cmux` 정의)
+- `decisions/0005-tracer-bullet-roadmap.md` — L70 (이미 "재정의 필요"로 예고됨)
+- `work-plan.md` — L168, L232, L257, L280
+- 제외: `raw/grilling/2026-05-22-initial-grilling.md` (immutable)
+- ADR 0002는 본 turn에 측정 노트로 정정 완료.
+
+## [2026-05-30] phase | W0.5 동시 워커/메모리 측정 — ulw 가정 반증
+
+[work-plan.md](../work-plan.md) §8 `ulw` 동시성 항목 실측:
+
+- 모델 로드(8.5GB)가 지배적 메모리 이벤트: free 76%→14~17%, swap +1.3GB
+- claude 워커 각 idle RSS ~213MB. `cmux new-workspace --command 'claude' --focus false` ×2 spawn 시 free% 평탄(17%→17%), +0.43GB. `close-workspace`로 즉시 회수
+- 측정 내내 기존 claude 3개 가동 = 사실상 ≥3 동시 워커
+- **결론**: `ulw` 병렬은 서버측 subagent라 로컬 RAM N배 증가 없음 → plan §4 "ulw 5병렬 +1.5GB" 반증. 메모리 리스크 = 모델(8.5GB) + 데스크톱 앱(Chrome/VSCode ~1~1.5GB), 워커 수 아님. 2 동시 워커 메모리 안전. 헤드리스 운영이 14GB 임계값 관건
+- 측정 후 모델 언로드(`keep_alive:0`) → free 73% 복구
+
+영향 페이지: [phases/w0.5-validation.md](phases/w0.5-validation.md) 동시 워커 섹션 + 흔들린 가정 #4, [work-plan.md](../work-plan.md) §4 표.
+
+W0.5 진척: 메모리 ✅ / 모델 ✅ / cmux round-trip ✅ / 동시 워커 ✅. 남은 항목: JSON schema 준수율, 모델 라우팅 → 완료 후 ADR 0007.
+
+## [2026-05-30] lint | cmux API 어휘 정합화 완료 (위 TODO 처리)
+
+위 `[2026-05-30] lint | TODO` 항목 실행 완료 (executor 위임 + grep 검증):
+
+- `architecture/system-design.md` (7곳), `glossary.md` (1곳), `decisions/0005-tracer-bullet-roadmap.md` (1곳), `work-plan.md` (5곳)에서 `send-keys`→`send`+`send-key`, `new-session -d`→`new-workspace --focus false` 정정
+- `capture-pane`은 cmux tmux-compat로 유효하여 전부 보존 (system-design 10곳 등 무손상)
+- 검증: `grep -rn -E "send-keys|new-session" wiki/ work-plan.md` → 남은 것은 ADR 0002(errata 노트 방식, 본문 유지), log.md·phases 이력 기록, raw/grilling(immutable)뿐
+- ADR 0002는 본문을 직접 고치지 않고 `[API 어휘 정정]` errata 노트로 처리 (ADR=결정 기록 불변 원칙)
+
+## [2026-05-30] decision | git 워크플로우 체계 수립 + ADR 0008
+
+코드 phase(W1~) 진입 전 git 작업 규약을 명시적으로 고정 (사용자 결정: TBD + Conventional Commits + PR 형식):
+
+- [decisions/0008-git-workflow-tbd.md](decisions/0008-git-workflow-tbd.md) 신설 — Trunk-Based Development(짧은 수명 브랜치 + PR로 트렁크 통합), Conventional Commits(영어·간결), PR 템플릿
+- `CONTRIBUTING.md` (root) — 운영 가이드 (브랜치/커밋/PR 규약)
+- `.github/pull_request_template.md` — PR 형식 (Summary/Changes/Related/Verification/Checklist)
+- `.gitignore` — `.omc/` 런타임 상태 제외
+- [glossary.md](glossary.md) `## 개발 프로세스` 그룹 신설 (Trunk-Based Development, Conventional Commits), qwen3.5:9b 메모리 표기 8.5GB 정정
+- [index.md](index.md) decisions에 ADR 0008 + 0007 예약 표기, 규약 섹션에 CONTRIBUTING 링크
+
+통합 방식: 짧은 브랜치 + PR. 이 변경부터 해당 규약 적용.

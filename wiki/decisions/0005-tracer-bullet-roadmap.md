@@ -67,7 +67,7 @@ superseded-by: ""
 
 - **W1 범위 팽창 risk**. 현재 정의된 W1의 "가는 line" 자체가 이미 6개 컴포넌트(Discord bot + cmux 헬퍼 + send/capture 래퍼 + diff 캡처 + [[qwen3.5:9b]] 한국어 요약 + Discord 포스팅)를 포함한다. tracer-bullet 정신 — 가능한 한 가늘게 — 을 위반할 수 있다. **W1 진입 시 재절제(scope reduction)가 반드시 필요하다.**
 - **refactor 비용 누적**. W1의 하드코딩이 W2~W5에서 점진 대체되므로, 초기 코드의 일부는 버려진다. Layer-by-layer 대비 중복 작업이 발생한다.
-- **W0.5 측정 항목 재정의 필요**. 위 측정 항목들은 현재 cmux `send-keys` / `capture-pane` 메커니즘 가정 위에 정의되어 있다. W0.5 착수 전에 실제 cmux API와 맞추어 항목을 재검토해야 한다.
+- **W0.5 측정 항목 재정의 필요**. 위 측정 항목들은 현재 cmux `send`/`send-key` / `capture-pane` 메커니즘 가정 위에 정의되어 있다. W0.5 착수 전에 실제 cmux API와 맞추어 항목을 재검토해야 한다.
 
 **되돌리기 난이도**: 중간. W1 구현 전까지는 롤백 비용이 낮다. W2 이후에는 tracer-bullet 구조에 의존하는 코드가 쌓여 Layer-by-layer로 전환하는 비용이 커진다.
 

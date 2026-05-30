@@ -73,18 +73,20 @@
 
 ## 4. 메모리 현실 (Mac Mini M4 16GB)
 
-| 항목 | 점유 (추정) |
-|---|---|
-| macOS baseline | 4~5GB |
-| Ollama + qwen3.5:9b (Q4_K_M loaded) | ~6.6GB |
-| Claude Code 세션 × 2 (OMC 활성) | ~1GB |
-| LangGraph + FastAPI + SQLite + Discord bot | ~1GB |
-| 여유 buffer | ~2GB |
-| **합계** | **~15GB (빡빡)** |
+| 항목 | 점유 (추정) | 실측 (2026-05-30) |
+|---|---|---|
+| macOS baseline | 4~5GB | — |
+| Ollama + qwen3.5:9b (Q4_K_M loaded) | ~~6.6GB~~ | **8.5GB** (6.6GB는 *디스크*, 로드 시 RAM 8.5GB @ ctx 4096) |
+| Claude Code 세션 × 2 (OMC 활성) | ~1GB | — |
+| LangGraph + FastAPI + SQLite + Discord bot | ~1GB | — |
+| 여유 buffer | ~2GB | **모델 + 세션 1개에서 이미 free 105M, swapout 이력** |
+| **합계** | **~15GB (빡빡)** | **binding constraint 확정** |
 
-- OMC `ulw` 5병렬 → +1.5GB → 여유 사라짐. **2~3으로 캡**
-- 동시 task 1~2개로 축소
-- Mac Mini에서 VSCode/GUI 앱 띄우지 않을 것 권장
+> 실측 출처: [wiki/phases/w0.5-validation.md](wiki/phases/w0.5-validation.md). 256K context는 명목 스펙 — 16GB에서 full로 채우면 KV 캐시가 초과하므로 **Manager 컨텍스트를 보수적으로 캡**해야 한다.
+
+- ~~OMC `ulw` 5병렬 → +1.5GB~~ → **반증 (2026-05-30 실측)**: `ulw` subagent는 서버측 실행이라 로컬 RAM을 N배로 늘리지 않음. claude 워커는 ~213MB/개, +2 워커 시 free% 변동 없음. 메모리 리스크는 워커 수가 아니라 **모델 8.5GB + 데스크톱 앱**.
+- 동시 task 1~2개 — 메모리 제약보다는 가드레일/추적성 관점에서 유지
+- **Mac Mini에서 VSCode/GUI(Chrome 등) 앱 띄우지 않을 것** — 실측상 데스크톱 앱이 ~1~1.5GB 점유, 헤드리스 운영이 14GB 임계값 준수의 관건
 
 ---
 
@@ -163,7 +165,7 @@ my-local-agent/
 - Hybrid (C) 책임 분담
 - L2 자율성 (코드 + PR 2단계 승인)
 - interrupt #1 (정보 부족) / #2 (코드 승인) / #3 (PR 승인)
-- cmux send-keys / capture-pane
+- cmux send/send-key / capture-pane
 - 가드레일 (일일 $20, 작업당 turn 50)
 - worktree
 - `/deepinit` / `/deep-interview` / `/omc-doctor`
@@ -189,7 +191,7 @@ my-local-agent/
 - **section 6 (llm-wiki)**: dev-wiki와 target-repo wiki 구분 명시
 - **section 9 (로드맵)**: Tracer-bullet 로드맵으로 교체
 - **section 10 (의사결정 기록)**: ADR로 이동, 본문에는 한 줄 요약 + ADR 링크만
-- **section 11 (리스크)**: OMC 통합 리스크 추가 (메모리, send-keys 안정성, 모델 라우팅), 메모리 수치 갱신
+- **section 11 (리스크)**: OMC 통합 리스크 추가 (메모리, send/send-key 안정성, 모델 라우팅), 메모리 수치 갱신
 
 ### W0-6. `wiki/raw/grilling/2026-05-22-initial-grilling.md` 작성
 
@@ -227,14 +229,14 @@ my-local-agent/
 |---|---|---|
 | 메모리 peak | Activity Monitor + `top` | < 14GB (wiki 정본 임계값) |
 | OMC `autopilot:` 단발 호출 | 새 worktree에서 `claude` 띄우고 `autopilot: hello world 함수 추가` | 1회 성공 |
-| cmux 통신 round-trip | Python 스크립트로 `new-session -d` → `send-keys` → 5초 대기 → `capture-pane` | 100회 중 실패 ≤ 1% |
+| cmux 통신 round-trip | Python 스크립트로 `new-workspace --focus false` → `send`+`send-key` → 5초 대기 → `capture-pane` | 100회 중 실패 ≤ 1% |
 | OMC `ulw` 2~3 동시성 | `ulw` 2병렬 실행 후 메모리/CPU 측정 | OOM/스왑 없음 |
 | 모델 라우팅 | `eco:` 키워드 사용 시 모델 라우팅 로그 확인 | 의도대로 haiku 라우팅 |
 
 ### Go 기준
 세 가지 모두 충족:
 1. 메모리 peak < 14GB
-2. send-keys/capture-pane 안정 (≥ 99% 성공)
+2. send/send-key/capture-pane 안정 (≥ 99% 성공)
 3. `ulw` 2 동시 통과
 
 ### No-go 시 fallback
@@ -252,7 +254,7 @@ my-local-agent/
 
 | 주 | Phase | 산출물 | 핵심 작업 조각 |
 |---|---|---|---|
-| **W1** | E2E 스파이크 | Discord msg → 하드코딩 영문 prompt → cmux OMC → diff 한국어 출력 (PR/승인/가드레일 없음) | (1) Discord bot mention 수신, (2) cmux 세션 spawn 헬퍼, (3) OMC send-keys + capture-pane 래퍼, (4) diff 캡처 → Qwen 한국어 요약, (5) Discord thread에 결과 포스팅 |
+| **W1** | E2E 스파이크 | Discord msg → 하드코딩 영문 prompt → cmux OMC → diff 한국어 출력 (PR/승인/가드레일 없음) | (1) Discord bot mention 수신, (2) cmux 세션 spawn 헬퍼, (3) OMC `send`/`send-key` + capture-pane 래퍼, (4) diff 캡처 → Qwen 한국어 요약, (5) Discord thread에 결과 포스팅 |
 | **W2** | Manager 두뇌화 | 이슈 fetch + 한국어 의도 파싱 + 영문 prompt 빌드 | (1) GitHub API로 이슈 fetch, (2) LangGraph minimal (parse_issue → build_prompt), (3) 정보 충분성 JSON schema, (4) 기존 E2E에 인서트 |
 | **W3** | interrupt | checkpointer (SQLite) + interrupt #1 (정보 부족 시 추가 질문) | (1) SQLite checkpointer 도입, (2) `interrupt()` + resume, (3) Discord thread reply → resume 매핑 |
 | **W4** | 승인 게이트 | interrupt #2 (코드) + #3 (PR) | (1) diff 한국어 요약 + 승인 요청 메시지, (2) reaction/reply로 승인 캡처, (3) PR 승인 분리 |
@@ -275,7 +277,7 @@ my-local-agent/
 - **OMC `autopilot:` / `ralph:`가 L2 자율성과 충돌** — OMC가 자체적으로 PR까지 가버리는 시나리오 차단 필요. worktree env에서 `gh` CLI 제거, Manager만 PR 생성
 
 ### Medium
-- **OMC cmux 통신 (send-keys/capture-pane) 안정성** — 검증되지 않음. W0.5에서 100회 round-trip 테스트로 결판
+- **OMC cmux 통신 (send/send-key/capture-pane) 안정성** — 검증되지 않음. W0.5에서 100회 round-trip 테스트로 결판
 - **OMC `/deep-interview` ↔ Manager interrupt #1 매핑** — OMC가 영문으로 물으면 Manager가 한국어로 옮겨 Discord 전달 → 응답 받아 inject. 이 round-trip이 매끄럽게 동작하는지는 W3에서 검증
 - **가드레일 카운팅 정확도** — OMC는 자체 모델 라우팅 (haiku/sonnet/opus)을 하므로 토큰 비용 추정이 복잡. Anthropic API metering API 사용 또는 OMC `/trace` 출력 파싱
 

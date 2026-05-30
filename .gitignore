@@ -1,0 +1,5 @@
+# OMC runtime state
+.omc/
+
+# macOS
+.DS_Store

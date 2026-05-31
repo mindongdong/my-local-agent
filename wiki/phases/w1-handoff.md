@@ -98,7 +98,7 @@ tracer-bullet이므로 **통신 척추부터**:
 3. ✅ **(1)(5)** Discord 양끝 연결. — `spike/w1/discord_bot.py` (@멘션→thread 포스팅, `feat/w1-discord`)
 
 **W1 E2E 완료 (2026-05-31)**: 실 Discord `#일반` @멘션 → cmux `claude -p` 워커(격리 /tmp) → diff → qwen 한국어 요약 → thread 포스팅 끝까지 동작. 상세는 [log.md](../log.md) 2026-05-31 항목.
-**남은 항목**: 모델 라우팅(`eco:`→haiku) — 순수 `claude -p`라 OMC 라우팅 미발생, OMC autopilot 워커 확장 시 `/trace`로 확인.
+**모델 라우팅(`eco:`→haiku) ✅ 검증·정정 (2026-05-31)**: evidence 결과 "eco:→haiku 결정적 라우팅" 가정은 **부정확**. eco는 실제 키워드(token-efficient 모드)지만 OMC 모델 라우팅은 LLM이 복잡도로 `model=` 명시 선택(haiku 고정 아님). 비용은 사후 `/trace` 관측 필요. 라이브 `/trace` PoC는 OMC 본격 통합(W2~) 때. 상세 [[ADR 0007]] Addendum. → **W0.5 연기 항목 전부 종료.**
 
 각 조각은 짧은 브랜치 + PR. 막히거나 결정이 필요하면 **한국어로 질문**.
 

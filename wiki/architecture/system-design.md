@@ -189,7 +189,7 @@ END
 | 단순 기능 추가 / 버그 수정 | `autopilot:` | 계획 분해 + 실행 + 검증 자동 |
 | 복잡한 리팩토링 / 다중 파일 | `ralph:` | 자율 루프, verifier 강함 |
 | 독립 병렬 가능 작업 (여러 파일) | `ulw` (병렬 캡 2~3) | 메모리 제약 (Mac Mini 16GB) |
-| 비용 절감 우선 (단순 lint/format) | `eco:` (haiku 라우팅) | 토큰 절약 |
+| 비용 절감 우선 (단순 lint/format) | `eco:` (token-efficient 모드) | 토큰 절약 (haiku 고정 아님 — W1 검증, 아래 주석) |
 | 다중 에이전트 협력 필요 | `team` | 특수 케이스 |
 
 ---
@@ -332,7 +332,8 @@ END
 
 [[ADR 0003]] Consequences 에서 명시된 리스크:
 
-- [[OMC]] 는 자체 모델 라우팅 (haiku / sonnet / opus) 을 한다 — `eco:` 는 haiku, `autopilot:` 은 sonnet, deep reasoning 은 opus 등
+- [[OMC]] 는 자체 모델 라우팅 (haiku / sonnet / opus) 을 한다 — **단, 결정적 키워드→모델 테이블이 아니라 LLM(에이전트)이 작업 복잡도를 보고 `Task(..., model="haiku|sonnet|opus")` 로 명시 선택한다** (`ultrawork/SKILL.md`: simple→haiku, standard→sonnet, complex→opus). `eco:` 는 그 선택을 저렴한 쪽으로 편향시키는 **token-efficient 모드**일 뿐 haiku 고정이 아니다. (W1 검증 — [[ADR 0007]] Addendum)
+- → 비용 추정이 더 복잡하다: 모델 선택이 비결정적(LLM 판단)이므로 사전 예측 불가, **실제 spawn된 model을 사후 관측**해야 한다 (`/trace` 파싱 또는 PostToolUse hook). 정적 "eco=haiku" 가정으로 비용을 추정하면 틀린다.
 - [[Manager]] 가 외부에서 turn 만 세면 실제 토큰 비용을 정확히 알 수 없음
 - 비용 추정 옵션:
   1. **Anthropic API metering** — 공식 usage API 호출로 실제 사용량 조회

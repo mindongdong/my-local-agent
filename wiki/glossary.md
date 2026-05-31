@@ -70,7 +70,7 @@ Claude Code 플러그인으로, 30개 이상의 전문 에이전트 + [[magic ke
 
 ### magic keyword
 
-OMC가 인식하는 특수 키워드로, 작업 모드를 선택한다. 주요 키워드는 `autopilot:` (자동 계획 분해 + 실행), `ralph:` (자율성 루프), `ulw` (병렬 작업), `team` (다중 에이전트 협력), `eco:` (경량 모델 라우팅)이 있다.
+OMC가 인식하는 특수 키워드로, 작업 모드를 선택한다. 주요 키워드는 `autopilot:` (자동 계획 분해 + 실행), `ralph:` (자율성 루프), `ulw` (병렬 작업), `team` (다중 에이전트 협력), `eco:` (token-efficient 실행 모드 — 저렴한 모델/적은 병렬 편향. "haiku 고정 라우팅"이 아님, W1 검증)이 있다.
 
 **관련**: [[OMC]], [/deepinit], [/deep-interview], [/omc-doctor]
 

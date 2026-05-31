@@ -11,16 +11,24 @@
 | 4 | Qwen 한국어 요약 (diff→한국어 JSON) | `qwen_summarize.py` | ✅ 실 diff 검증 |
 | — | 전체 E2E (Discord 제외, CLI) | `e2e_local.py` | ✅ |
 | — | (cmux 래퍼 스모크) | `smoke_shell.py` | ✅ |
-| 1+5 | Discord 양끝 (수신/포스팅) | _미구현_ | ⏳ 토큰 준비 후 |
+| 1+5 | Discord 양끝 (멘션 수신 → thread 포스팅) | `discord_bot.py` | ✅ 실 Discord 검증 |
 
-Discord 양끝은 `e2e_local.py`의 입력(stdin)·출력(stdout) 어댑터만 교체하면 됨 — 척추는 검증 완료. 토큰은 `.env`(gitignore)로 분리, `.env.example` 참조.
+**W1 E2E 전체 검증 완료** (2026-05-31): Discord #일반 채널에서 봇 @멘션 → cmux claude 워커 → diff → qwen3.5:9b 한국어 요약 → thread 포스팅이 실제로 끝까지 동작. 로그: `[recv]→[thread]→[worker]→[done] exit=0→[posted]`.
 
 ## 실행
 
 ```bash
-# 전제: ollama + qwen3.5:9b 가동, cmux 0.64.10, cmux.app 안에서 실행
-python3 spike/w1/smoke_shell.py 10      # cmux 래퍼 round-trip
-python3 spike/w1/e2e_local.py           # 전체 E2E: 하드코딩 prompt → cmux 워커 → diff → 한국어 요약
+# 전제: ollama + qwen3.5:9b 가동, cmux 0.64.10, cmux.app 터미널 안에서 실행
+pip install -r spike/w1/requirements.txt   # discord.py
+
+python3 spike/w1/smoke_shell.py 10         # cmux 래퍼 round-trip
+python3 spike/w1/e2e_local.py              # 로컬 CLI E2E (Discord 없이)
+
+# Discord 봇: spike/w1/.env 에 DISCORD_BOT_TOKEN / DISCORD_CHANNEL_ID 채운 뒤
+#   - Developer Portal에서 MESSAGE CONTENT INTENT 켜기 필수
+#   - 봇 권한: Send Messages / Create Public Threads / Send Messages in Threads
+#   - cmux 터미널 안에서 실행해야 cmux identify가 caller window를 잡음
+python3 -u spike/w1/discord_bot.py         # @멘션 대기 → 워커 → 한국어 요약 thread 포스팅
 ```
 
 ## 흐름

@@ -85,3 +85,22 @@ No-go fallback(Gemma 3n E4B 다운그레이드, headless `claude -p` 회귀, 동
 **cmux 0.64.10 API 정정** (Mac Mini에서 드러남): `send`/`read-screen`은 **`--surface`에 `--window` 컨텍스트 필수**, 기본 `new-workspace`는 비-터미널이라 **`--layout` 터미널 surface 명시** 필요. W1 cmux 래퍼에 반영. (상세: [[w0.5-validation]] Mac Mini 재측정 §②)
 
 **잔여 리스크 갱신**: 헤드룸 얇음(unused ~170M). W1에서 Discord bot·FastAPI·SQLite·실제 요약 컨텍스트 추가 시 **운영 메모리 재측정** 필요. 초과 시 fallback = keep_alive 단축 / 동시성 1 / Gemma 다운그레이드([[ADR 0004]]).
+
+## Addendum — 모델 라우팅(`eco:`→haiku) 검증 (2026-05-31, W1)
+
+본 ADR 본문(Decision 4, Consequences 표)이 [[W1]]로 연기했던 마지막 항목. W1 E2E 완료 후 OMC 4.14.4 소스·문서 evidence로 확인했다 (라이브 `/trace`는 W2 OMC 본격 통합 시).
+
+**결과: wiki의 "`eco:`→haiku 결정적 라우팅" 가정은 부정확 — 정정함.**
+
+| 가정 | evidence | 판정 |
+|---|---|---|
+| `eco:`가 OMC 매직 키워드 | README/quickref/slides에 `eco` = "token-efficient/budget-friendly parallel" 실재 | ✅ 맞음 |
+| `eco:` → **haiku** 결정적 매핑 | 코드·skill 어디에도 키워드→모델 테이블 없음 | ❌ 부정확 |
+
+- **실제 메커니즘**: OMC 모델 라우팅은 **LLM(에이전트)이 작업 복잡도를 보고 `Task(subagent_type="executor", model="haiku\|sonnet\|opus")`로 명시 선택**한다 (`skills/ultrawork/SKILL.md` L68-70: simple→haiku, standard→sonnet, complex→opus; `sciomc`/`deep-dive`도 동일 패턴). 결정적 테이블이 아니라 **프롬프트 지시 기반 판단**.
+- **`eco`의 정체**: 별도 skill이 아닌 **모드 수식 키워드**(token-efficient/budget-friendly parallel). 다른 모드와 조합("autopilot eco:", "ralph eco:"), 모델 선택을 저렴한 쪽으로 편향시키나 **haiku를 강제하지 않는다**.
+- **W0.5 함정과 동형**: 가정한 메커니즘(자동 라우팅 테이블)이 실제로는 다르게(LLM 지시 기반) 동작 — ollama `format` 강제 함정과 같은 교훈. **메커니즘 가정을 코드로 먼저 검증할 것.**
+
+**함의 (비용 추정/가드레일)**: 모델 선택이 비결정적(LLM 판단)이므로 정적 "eco=haiku" 가정으로 비용을 사전 추정하면 틀린다. **실제 spawn된 model을 사후 관측**(`/trace` 파싱 또는 PostToolUse hook)해야 한다 ([[ADR 0003]] Consequences, [[w1-handoff]] §8). 본 ADR Consequences 표의 "모델 라우팅 ⏸"은 이 Addendum으로 **확인 완료**로 갱신.
+
+**정정 페이지**: [[w0.5-validation]]/[[system-design]] 모델 라우팅 섹션 + 라우팅 표, [[glossary]] `eco:` 정의.

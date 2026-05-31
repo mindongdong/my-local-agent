@@ -93,9 +93,12 @@ W0/W0.5의 **모든 실측치**(메모리 8.5GB·free%·swap, cmux round-trip 30
 ## 8. W1 권장 시작점
 
 tracer-bullet이므로 **통신 척추부터**:
-1. 먼저 **(2)+(3)** cmux 세션 spawn + OMC `send`/`read` 래퍼를 작은 PoC로 (Python). 안정 확인.
-2. 다음 **(4)** Qwen 한국어 요약 함수.
-3. 마지막 **(1)(5)** Discord 양끝 연결.
+1. ✅ **(2)+(3)** cmux 세션 spawn + OMC `send`/`read` 래퍼 PoC (Python). — `spike/w1/cmux_session.py`, `worker_spawn.py` (PR #6)
+2. ✅ **(4)** Qwen 한국어 요약 함수. — `spike/w1/qwen_summarize.py` (PR #6)
+3. ✅ **(1)(5)** Discord 양끝 연결. — `spike/w1/discord_bot.py` (@멘션→thread 포스팅, `feat/w1-discord`)
+
+**W1 E2E 완료 (2026-05-31)**: 실 Discord `#일반` @멘션 → cmux `claude -p` 워커(격리 /tmp) → diff → qwen 한국어 요약 → thread 포스팅 끝까지 동작. 상세는 [log.md](../log.md) 2026-05-31 항목.
+**남은 항목**: 모델 라우팅(`eco:`→haiku) — 순수 `claude -p`라 OMC 라우팅 미발생, OMC autopilot 워커 확장 시 `/trace`로 확인.
 
 각 조각은 짧은 브랜치 + PR. 막히거나 결정이 필요하면 **한국어로 질문**.
 

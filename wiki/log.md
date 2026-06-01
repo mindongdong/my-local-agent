@@ -205,3 +205,17 @@ W0.5부터 연기된 마지막 항목([[ADR 0007]] Decision 4)을 OMC 4.14.4 소
 영향 페이지: [decisions/0007-omc-validation-result.md](decisions/0007-omc-validation-result.md) Addendum(모델 라우팅 검증), [architecture/system-design.md](architecture/system-design.md) 모델 라우팅 섹션·라우팅 표, [glossary.md](glossary.md) `eco:` 정의, [phases/w1-handoff.md](phases/w1-handoff.md) §8.
 
 → **W1 E2E + W0.5 연기 항목 모두 종료.** 다음: W2(가드레일/승인/PR 생성, work-plan.md).
+
+## [2026-06-01] phase | W2 Manager 두뇌화 — 이슈→영문 prompt 파이프라인 E2E 동작
+
+work-plan §9의 W2(="Manager 두뇌화": 이슈 fetch + 한국어 의도 파싱 + 영문 prompt 빌드 + 기존 E2E 인서트)를 구현·검증. 산출물 `spike/w2/`. **용어 정정**: 직전 로그가 W2를 "가드레일/승인/PR"로 적었으나 그건 W4/W5 — 정본 work-plan §9 기준 W2는 Manager 두뇌화다.
+
+- **신규 3노드 (순수 함수, `ManagerState -> ManagerState`, dataclasses.replace로 새 상태 반환)**: `parse_issue`(`gh issue view` fetch + qwen 한국어 의도 파싱 → `Intent{summary_ko,task_type,target_hint}`), `assess_sufficiency`(정보 충분성 JSON 판단 → `Sufficiency{sufficient,missing_ko,reason_ko}`, 코드측 스키마 강제), `build_prompt`(qwen 한→영 작업 명세 + task_type→magic keyword 라우팅). 공용 `qwen.py`(범용 JSON 생성, W0.5 규약 think:false/temp:0/코드 검증+재시도)는 `spike/w1/qwen_summarize.py` 원칙을 노드 공용으로 일반화.
+- **결정 (사용자 승인)**: ① **LangGraph는 W3로 연기** — W2엔 분기·interrupt·checkpointer가 없어 이점 0(YAGNI). 노드를 순수 함수로 쓰고 얇은 순차 러너(`manager_graph.run_manager`)로 연결, 시그니처를 맞춰 W3는 동일 함수를 LangGraph 노드로 등록만(의존성 0). ② **테스트 이슈 1개 생성**([#9](https://github.com/mindongdong/my-local-agent/issues/9), 검증 후 close).
+- **스코프 메모**: `build_prompt`는 keyword를 **선택·기록만** — 실제 OMC keyword 호출(`invoke_omc_autopilot` 노드)은 차기. E2E는 W1 검증된 평문 `claude -p`에 en_prompt 인서트. 정보 부족 시 질문 출력 후 중단(exit 2), interrupt#1+resume 루프는 W3.
+- **E2E 검증**: 이슈 #9(영어 제목+한국어 본문) → `[parse]` task_type=feature/힌트=NOTES.md → `[assess]` sufficient=True("대상/위치/형식 명확") → `[build]` keyword=autopilot:/EN="Append a single English haiku about the ocean (exactly three lines)…" → `[worker]` exit=0/18.0s/diff 211B → `[summarize]` "NOTES.md 파일에 시적인 문장 3 줄을 추가했습니다". 순수 로직 단위 테스트 7/7 통과(`test_manager.py`, 네트워크 불필요).
+- **관측된 9B 약점(비차단)**: parse의 `summary_ko`가 "haiku 1 줄"로 부정확(본문은 3줄). 단 `build_prompt`의 영문 명세는 "exactly three lines"로 정확 → 워커 결과 정상. assess/build가 같은 본문을 다시 읽어 보정하는 구조라 단일 필드 오류가 파이프라인을 깨지 않음.
+
+영향 페이지: `spike/w2/*` 신설, [phases/w2.md](phases/w2.md) 신설, [work-plan.md](../work-plan.md) §11 다음 행동, [index.md](index.md) Phase 노트.
+
+다음: W3(interrupt) — SQLite checkpointer + LangGraph 전환 + interrupt#1(정보 부족 추가 질문) + Discord thread reply↔resume 매핑.

@@ -293,4 +293,6 @@ my-local-agent/
 2. ~~W0 실행~~ ✅ — wiki 뼈대 + SCHEMA + glossary + ADR 0001~0006 + system-design
 3. ~~W0-9 환경 셋업~~ ✅ — ollama 0.24.0 + qwen3.5:9b, OMC, cmux 0.64.10
 4. ~~W0.5 검증~~ ✅ **Go (헤드리스 전제)** — [wiki/decisions/0007-omc-validation-result.md](wiki/decisions/0007-omc-validation-result.md). 메모리/cmux 300·100%/ulw/JSON 93% 측정, 모델 라우팅은 W1 연기
-5. **W1 진입** ← 현재 — E2E 스파이크 (Discord → cmux OMC → 한국어 diff)
+5. ~~W1 E2E 스파이크~~ ✅ — Discord 양끝까지 동작(`spike/w1/`, PR #5/6/7). 모델 라우팅 검증·정정(PR #8). [wiki/phases/w1-handoff.md](wiki/phases/w1-handoff.md)
+6. ~~W2 Manager 두뇌화~~ ✅ — 이슈 fetch + 한국어 의도 파싱 + 영문 prompt 빌드 + E2E 인서트(`spike/w2/`). LangGraph는 W3 연기(순수 함수+State). [wiki/phases/w2.md](wiki/phases/w2.md)
+7. **W3 진입** ← 다음 — interrupt: SQLite checkpointer + LangGraph 전환 + interrupt#1(정보 부족 추가 질문) + Discord thread reply↔resume 매핑

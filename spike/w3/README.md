@@ -57,9 +57,34 @@ python3 spike/w3/e2e_w3.py 11 --answer "중복 줄 제거, 제목만 남겨" --d
 - **interrupt/resume/checkpointer 동작 확인**: SQLite 체크포인트 경계에서 상태
   직렬화/복원 정상, **serde 경고 없음**(allowlist 등록으로 future-proof).
 - 순수 로직 단위 테스트 **5/5 통과**.
-- **워커 포함 전체 E2E는 미실행**: 테스트 시점 cmux 소켓이 broken-pipe 상태(`cmux ping`
-  실패 — 다일 세션 드리프트, cmux 앱 재시작 필요). 워커 단계는 **W1-검증 경로**(이번
-  세션 W2 E2E에서 정상 동작)이며 W3 신규 코드가 아니다. cmux 소켓 정상화 후 재실행.
+
+### 워커 포함 전체 E2E (2026-06-03 18:19 KST, cmux 소켓 정상화 후 재실행 — **통과**)
+
+직전 검증 시점에 broken-pipe였던 cmux 소켓이 복구(`cmux ping` → `PONG`)되어,
+미뤄둔 워커 단계까지 **전체 경로를 한 번에** 실행:
+
+```
+python3 -u spike/w3/e2e_w3.py 11 --answer "중복된 줄을 제거하고 제목 '# Notes'만 남겨주세요. 다른 파일은 건드리지 마세요."
+```
+
+```
+[assess] sufficient=False → ⏸ interrupt#1(한국어 질문 2개)
+  [answer] 중복된 줄을 제거하고 제목 '# Notes'만 남겨주세요. …
+[assess] sufficient=True  (clarify 1라운드)
+[build]  keyword=ralph: EN="In NOTES.md, remove all duplicate lines and keep only the heading '# Notes'. Do not modify any other files."
+[worker] workspace 격리(/tmp) → headless claude → done exit=0, 29.3s, diff 140B
+[summarize] qwen 한국어 요약:
+  변경 요약: NOTES.md … 헤더만 남도록 변경.
+  변경 파일: NOTES.md   리스크: 본문 내용 삭제로 정보 손실 위험.
+```
+
+- **interrupt → resume → 워커 → diff → 요약** 전 구간 결정적 통과(exit 0). 워커가
+  시드의 중복 줄을 제거하고 `# Notes`만 남김 — 프롬프트 충실 이행, qwen이 정보손실
+  리스크를 정확히 플래깅.
+- 체크포인터 파일 누적 확인(`data/checkpoints.sqlite`, 다중 thread_id round-trip).
+- ⚠️ **관찰**: 워커 워크스페이스 정리가 `close-workspace`의 eventual-consistency로
+  레이스 — 1개 orphan 잔존(수동 close는 즉시 OK). 워커 프로세스 종료와 close 사이
+  레이스로 추정. PR-b 어댑터에서 **close 재시도/확인 가드** 고려(기능 차단 아님).
 
 ## 설계 메모
 

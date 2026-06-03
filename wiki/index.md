@@ -49,6 +49,7 @@
 - [phases/w0.5-validation.md](phases/w0.5-validation.md) — W0.5 검증 게이트 **완료 (Go, 헤드리스 전제)**. 메모리(8.5GB binding) / cmux round-trip 300·100% / 동시 워커 / JSON 14·14·93% 측정. 모델 라우팅은 W1 연기.
 - [phases/w1-handoff.md](phases/w1-handoff.md) — **W1 핸드오프** (다른 머신 → 타겟 Mac Mini). ⚠️ W0.5 실측은 다른 머신 → Mac Mini 환경 셋업 + 재검증 후 W1 착수. 운영 사실 distill + 시작 지시문 포함. W1 E2E **완료**(§8) + 모델 라우팅 검증·정정.
 - [phases/w2.md](phases/w2.md) — **W2 Manager 두뇌화 완료**. 이슈 fetch + 한국어 의도 파싱 + 정보 충분성 + 영문 prompt 빌드(`spike/w2/`). LangGraph는 W3 연기(순수 함수+State). 이슈 #9로 E2E 검증. (용어 정정: W2≠가드레일/PR, 그건 W4/W5)
+- [phases/w3.md](phases/w3.md) — **W3 interrupt 진행 중**. PR-a ✅ interrupt 기계장치(LangGraph 전환 + SQLite checkpointer + interrupt#1 재assess 루프, `spike/w3/`, 이슈 #11로 CLI 증명). PR-b 예정 Discord reply↔resume. 워커 포함 E2E는 cmux 소켓 정상화 후.
 
 ---
 

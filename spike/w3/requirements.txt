@@ -1,0 +1,4 @@
+# W3 spike 추가 의존성 (W1 discord.py + 표준 라이브러리에 더해).
+# LangGraph 전환(W2에서 연기) + SQLite 체크포인터.
+langgraph>=1.2,<2
+langgraph-checkpoint-sqlite>=3.1,<4

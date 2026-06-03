@@ -12,3 +12,8 @@ venv/
 
 # Secrets
 .env
+
+# LangGraph SQLite checkpoints (W3+)
+*.sqlite
+*.sqlite-*
+spike/*/data/

@@ -219,3 +219,17 @@ work-plan §9의 W2(="Manager 두뇌화": 이슈 fetch + 한국어 의도 파싱
 영향 페이지: `spike/w2/*` 신설, [phases/w2.md](phases/w2.md) 신설, [work-plan.md](../work-plan.md) §11 다음 행동, [index.md](index.md) Phase 노트.
 
 다음: W3(interrupt) — SQLite checkpointer + LangGraph 전환 + interrupt#1(정보 부족 추가 질문) + Discord thread reply↔resume 매핑.
+
+## [2026-06-03] phase | W3 PR-a — LangGraph 전환 + interrupt#1 기계장치 (CLI 증명)
+
+work-plan §9 W3(interrupt)의 첫 조각. W2가 연기한 **LangGraph 전환**을 수행하고 그 위에 **interrupt#1 + SQLite checkpointer**를 얹어, 정보 부족 시 되묻고 답을 받아 재개하는 루프를 CLI로 결정적 증명. 산출물 `spike/w3/`. **사용자 결정**: ① CLI 기계장치 먼저(별도 PR) → Discord 어댑터는 PR-b. ② 모호한 테스트 이슈 1개 생성([#11](https://github.com/mindongdong/my-local-agent/issues/11)).
+
+- **그래프** (`manager_graph_lg.py`): `START→parse→assess─(sufficient)→build→END / (insufficient)→clarify(interrupt#1)→assess`. W2 3노드(parse/assess/build)를 **수정 0**으로 LangGraph 노드 래퍼에 등록(각 래퍼는 W2 순수 함수 호출 후 변경 필드만 델타 반환). `clarify`는 `interrupt(질문)`로 일시정지 → 답변을 **이슈 본문에 Q&A append**(`append_clarification`) → assess 재실행. assess/build가 더 풍부한 본문을 그대로 읽으므로 상태 새 필드/노드 수정 불필요 = W2의 "노드 등록만" 약속 이행.
+- **checkpointer**: `SqliteSaver`(파일 기반, `spike/w3/data/checkpoints.sqlite`, gitignore). W2 dataclass를 그래프 state로 그대로 사용하되 `JsonPlusSerializer(allowed_msgpack_modules=[("manager_state", …)])`로 등록 — **probe로 serde round-trip 선검증**(중첩 frozen dataclass가 interrupt 경계에서 직렬화/복원, 미등록 경고는 allowlist로 제거 = future-proof).
+- **의존성**: `langgraph 1.2.4` + `langgraph-checkpoint-sqlite 3.1.0` (miniconda base env, discord.py와 동일). `spike/w3/requirements.txt`.
+- **검증 (이슈 #11, `--dry`)**: `[parse]` intent=refactor → `[assess] sufficient=False`(정리 기준 누락) + 한국어 질문 2개 → **interrupt#1** → 답변("중복 줄 제거, 제목만 남겨") → `[assess] sufficient=True`(clarify 1라운드) → `[build] keyword=ralph:`(refactor→ralph:) EN="In NOTES.md, remove all duplicate lines and keep only the heading '# Notes'…". **serde 경고 없음**. 순수 로직 단위 테스트 5/5(`test_w3.py`).
+- **미실행 — 워커 포함 전체 E2E**: 테스트 시점 **cmux 소켓 broken-pipe**(`cmux ping` 3회 실패; 소켓 파일 06-01자, 다일 세션 드리프트로 데몬 측 끊김 — cmux 앱 재시작 필요). 워커 단계는 **W1-검증 경로**(이번 세션 W2 E2E에서 exit=0 정상)이며 W3 신규 코드 아님. cmux 정상화 후 재실행 예정. **interrupt 기계장치(=PR-a 핵심)는 `--dry`로 완전 증명.**
+
+영향 페이지: `spike/w3/*` 신설, [phases/w3.md](phases/w3.md) 신설, [work-plan.md](../work-plan.md) §11, [index.md](index.md) Phase 노트, `.gitignore`(*.sqlite).
+
+다음: **W3 PR-b** — Discord 어댑터(`discord_bot` 확장): insufficient→thread에 한국어 질문 포스팅 → thread reply 수신 → **Discord thread.id = checkpointer thread_id** 매핑으로 graph resume → 충분해지면 worker. (cmux 소켓 정상화 후 worker 포함 E2E도 함께.)
